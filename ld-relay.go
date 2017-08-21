@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"strconv"
 
 	"github.com/launchdarkly/eventsource"
 	"github.com/launchdarkly/gcfg"
@@ -70,8 +71,9 @@ type StatusEntry struct {
 }
 
 func main() {
+	var port string
 
-	flag.StringVar(&configFile, "config", "/etc/ld-relay.conf", "configuration file location")
+	flag.StringVar(&configFile, "config", "ld-relay.conf", "configuration file location")
 
 	flag.Parse()
 
@@ -93,9 +95,17 @@ func main() {
 		c.Redis.LocalTtl = &localTtl
 	}
 
-	if c.Main.Port == 0 {
-		Info.Printf("No port specified in configuration file. Using default port %d.", defaultPort)
-		c.Main.Port = defaultPort
+	if c.Main.Port == 0 {		
+		Info.Printf("No port specified in configuration file. Trying to read environment variable 'PORT'")
+		port = os.Getenv("PORT")
+		if (port == "") {
+			Info.Printf("No 'PORT' environment variable found.  Using default port %d.", defaultPort)
+			c.Main.Port= defaultPort
+		} else {
+			iPort, _ := strconv.Atoi(port)
+			Info.Printf("Using port from environment variable, %d.", iPort)
+			c.Main.Port = iPort
+		}
 	}
 
 	if len(c.Environment) == 0 {
